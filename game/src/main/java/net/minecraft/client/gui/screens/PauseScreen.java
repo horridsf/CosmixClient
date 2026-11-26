@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
+import net.lax1dude.eaglercraft.v1_8.cosmix.CosmixFeatures;
+import net.lax1dude.eaglercraft.v1_8.cosmix.CosmixFeaturesScreen;
 import net.lax1dude.eaglercraft.v1_8.sp.gui.RelaySettingsLink;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
@@ -53,7 +55,8 @@ public class PauseScreen extends Screen {
    private static final Component OPTIONS = Component.translatable("menu.options");
    private static final Component MULTIPLAYER_OPTIONS = Component.translatable("menu.multiplayerOptions.button");
    private static final Component PLAYER_REPORTING = Component.translatable("menu.playerReporting");
-   private static final Component GAME = Component.translatable("menu.game");
+   private static final Component GAME = Component.translatable("cosmix.pause.title");
+   private static final Component PAUSE_SUBTITLE = Component.translatable("cosmix.pause.subtitle");
    private static final Component PAUSED = Component.translatable("menu.paused");
    private static final Tooltip CUSTOM_OPTIONS_TOOLTIP = Tooltip.create(Component.translatable("menu.custom_options.tooltip"));
    private static final Tooltip NO_PLAYERS_TO_REPORT_TOOLTIP = Tooltip.create(Component.translatable("menu.playerReporting.no_players"));
@@ -76,7 +79,11 @@ public class PauseScreen extends Screen {
       }
 
       int textWidth = this.font.width(this.title);
-      this.addRenderableWidget(new StringWidget(this.width / 2 - textWidth / 2, this.showPauseMenu ? 40 : 10, textWidth, 9, this.title, this.font));
+      this.addRenderableWidget(new StringWidget(this.width / 2 - textWidth / 2, this.showPauseMenu ? 20 : 10, textWidth, 9, this.title, this.font));
+      if (this.showPauseMenu) {
+         int subtitleWidth = this.font.width(PAUSE_SUBTITLE);
+         this.addRenderableWidget(new StringWidget(this.width / 2 - subtitleWidth / 2, 34, subtitleWidth, 9, PAUSE_SUBTITLE, this.font));
+      }
       if (this.showPauseMenu && net.lax1dude.eaglercraft.v1_8.minecraft.EaglerHosted.isActive()) {
          this.addRenderableWidget(new RelaySettingsLink(this));
       }
@@ -92,6 +99,19 @@ public class PauseScreen extends Screen {
       }).width(204).build(), 2, gridLayout.newCellSettings().paddingTop(50));
       helper.addChild(this.openScreenButton(ADVANCEMENTS, () -> new AdvancementsScreen(this.minecraft.player.connection.getAdvancements(), this)));
       helper.addChild(this.openScreenButton(STATS, () -> new StatsScreen(this, this.minecraft.player.getStats())));
+      helper.addChild(
+         Button.builder(Component.translatable("cosmix.mod_menu.button"), button -> this.minecraft.gui.setScreen(new CosmixFeaturesScreen(this)))
+            .width(204)
+            .build(),
+         2
+      );
+      helper.addChild(
+         Button.builder(CosmixFeatures.toggleMessage(CosmixFeatures.Feature.HUD_OVERLAY), button -> {
+            CosmixFeatures.toggle(CosmixFeatures.Feature.HUD_OVERLAY);
+            button.setMessage(CosmixFeatures.toggleMessage(CosmixFeatures.Feature.HUD_OVERLAY));
+         }).width(204).build(),
+         2
+      );
       Optional<? extends Holder<Dialog>> additions = this.getCustomAdditions();
       additions.ifPresent(dialogHolder -> this.addCustomDialogButtons(this.minecraft, (Holder<Dialog>)dialogHolder, helper));
       boolean browserIntegratedWorld = net.lax1dude.eaglercraft.v1_8.minecraft.EaglerHosted.isActive()
@@ -109,8 +129,30 @@ public class PauseScreen extends Screen {
          Button.builder(
                CommonComponents.disconnectButtonLabel(this.minecraft.isLocalServer()),
                button -> {
-                  button.active = false;
-                  this.minecraft.disconnectFromWorld(ClientLevel.DEFAULT_QUIT_MESSAGE);
+                  if (CosmixFeatures.isEnabled(CosmixFeatures.Feature.CONFIRM_DISCONNECT)) {
+                     this.minecraft.gui.setScreen(new ConfirmScreen(
+                        confirmed -> {
+                           if (confirmed) {
+                              this.disconnectButton.active = false;
+                              this.minecraft.disconnectFromWorld(ClientLevel.DEFAULT_QUIT_MESSAGE);
+                           } else {
+                              this.minecraft.gui.setScreen(this);
+                           }
+                        },
+                        Component.translatable("cosmix.confirm_disconnect.title"),
+                        Component.translatable("cosmix.confirm_disconnect.message"),
+                        Component.translatable("cosmix.confirm_disconnect.confirm"),
+                        Component.translatable("cosmix.confirm_disconnect.cancel")
+                     ) {
+                        @Override
+                        public boolean isPauseScreen() {
+                           return PauseScreen.this.showPauseMenu;
+                        }
+                     });
+                  } else {
+                     button.active = false;
+                     this.minecraft.disconnectFromWorld(ClientLevel.DEFAULT_QUIT_MESSAGE);
+                  }
                }
             )
             .width(204)
@@ -159,6 +201,16 @@ public class PauseScreen extends Screen {
 
    @Override
    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
+      if (this.showPauseMenu) {
+         int panelLeft = this.width / 2 - 124;
+         int panelRight = this.width / 2 + 124;
+         int panelTop = 14;
+         int panelBottom = this.disconnectButton == null ? this.height - 16 :
+            Math.min(this.height - 8, this.disconnectButton.getY() + this.disconnectButton.getHeight() + 12);
+         graphics.fill(panelLeft, panelTop, panelRight, panelBottom, 0xD0101119);
+         graphics.fill(panelLeft, panelTop, panelRight, panelTop + 2, 0xFF9B6BFF);
+         graphics.fill(panelLeft, panelTop, panelLeft + 2, panelBottom, 0xFF9B6BFF);
+      }
       super.extractRenderState(graphics, mouseX, mouseY, a);
       if (this.rendersNowPlayingToast()) {
          NowPlayingToast.extractToast(graphics, this.font);

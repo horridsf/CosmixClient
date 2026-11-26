@@ -4,6 +4,7 @@ import com.mojang.authlib.minecraft.BanDetails;
 import com.mojang.logging.LogUtils;
 import java.io.IOException;
 import java.util.Objects;
+import net.lax1dude.eaglercraft.v1_8.cosmix.CosmixFeaturesScreen;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -48,6 +49,7 @@ public class TitleScreen extends Screen {
    private boolean fading;
    private long fadeInStart;
    private final LogoRenderer logoRenderer;
+   private int menuTop;
 
    public TitleScreen() {
       this(false);
@@ -90,6 +92,7 @@ public class TitleScreen extends Screen {
       int copyrightX = this.width - copyrightWidth - 2;
       int spacing = 24;
       int topPos = this.height / 4 + 48;
+      this.menuTop = topPos;
       boolean liteMode = net.lax1dude.eaglercraft.v1_8.minecraft.EaglerHosted.liteModeEnabled;
       boolean demoMode = !liteMode && this.minecraft.isDemo();
       if (demoMode) {
@@ -124,9 +127,14 @@ public class TitleScreen extends Screen {
       Button.Builder var10001 = Button.builder(
          Component.translatable("menu.options"), var1x -> this.minecraft.gui.setScreen(new OptionsScreen(this, this.minecraft.options, false))
       );
-      int var10002 = this.width / 2 - 100;
+      int buttonRowLeft = this.width / 2 - 149;
       topPos += 24;
-      this.addRenderableWidget(var10001.bounds(var10002, topPos, 98, 20).build());
+      this.addRenderableWidget(var10001.bounds(buttonRowLeft, topPos, 98, 20).build());
+      this.addRenderableWidget(
+         Button.builder(Component.translatable("cosmix.mod_menu.button"), button -> this.minecraft.gui.setScreen(new CosmixFeaturesScreen(this)))
+            .bounds(buttonRowLeft + 100, topPos, 98, 20)
+            .build()
+      );
       boolean eaglerHosted = net.lax1dude.eaglercraft.v1_8.minecraft.EaglerHosted.isActive();
       this.addRenderableWidget(
          Button.builder(eaglerHosted ? Component.translatableWithFallback("menu.credits", "Credits") : Component.translatable("menu.quit"), var1x -> {
@@ -135,7 +143,7 @@ public class TitleScreen extends Screen {
             } else {
                this.minecraft.stop();
             }
-         }).bounds(this.width / 2 + 2, topPos, 98, 20).build()
+         }).bounds(buttonRowLeft + 200, topPos, 98, 20).build()
       );
       this.addRenderableWidget(
          new PlainTextButton(
@@ -348,11 +356,21 @@ public class TitleScreen extends Screen {
       }
 
       this.extractPanorama(graphics, a);
-      super.extractRenderState(graphics, mouseX, mouseY, a);
+      int panelLeft = this.width / 2 - 154;
+      int panelTop = this.menuTop - 34;
+      int panelRight = this.width / 2 + 154;
+      int panelBottom = this.menuTop + 96;
+      graphics.fill(panelLeft, panelTop, panelRight, panelBottom, (int)(200.0F * widgetFade) << 24 | 0x121827);
+      graphics.fill(panelLeft, panelTop, panelRight, panelTop + 2, (int)(255.0F * widgetFade) << 24 | 0x7967F2);
       this.logoRenderer.extractRenderState(graphics, this.width, this.logoRenderer.keepLogoThroughFade() ? 1.0F : widgetFade);
       if (this.splash != null && !this.minecraft.options.hideSplashTexts().get()) {
          this.splash.extractRenderState(graphics, this.width, this.font, widgetFade);
       }
+      Component brand = Component.translatable("cosmix.menu.title");
+      graphics.text(this.font, brand, this.width / 2 - this.font.width(brand) / 2, this.menuTop - 25, ARGB.white(widgetFade), false);
+      Component subtitle = Component.translatable("cosmix.menu.subtitle");
+      graphics.text(this.font, subtitle, this.width / 2 - this.font.width(subtitle) / 2, this.menuTop - 14, ARGB.white(widgetFade), false);
+      super.extractRenderState(graphics, mouseX, mouseY, a);
 
       String versionString = "Minecraft " + SharedConstants.getCurrentVersion().name();
       if (this.minecraft.isDemo()) {

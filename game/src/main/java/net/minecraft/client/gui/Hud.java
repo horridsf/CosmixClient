@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Optionull;
+import net.lax1dude.eaglercraft.v1_8.cosmix.CosmixFeatures;
 import net.minecraft.client.AttackIndicatorStatus;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -220,7 +221,9 @@ public class Hud {
       if (!(this.minecraft.gui.screen() instanceof LevelLoadingScreen)) {
          if (!this.isHidden) {
             this.extractCameraOverlays(graphics, deltaTracker);
-            this.extractCrosshair(graphics, deltaTracker);
+            if (CosmixFeatures.isEnabled(CosmixFeatures.Feature.CROSSHAIR)) {
+               this.extractCrosshair(graphics, deltaTracker);
+            }
             graphics.nextStratum();
             this.extractHotbarAndDecorations(graphics, deltaTracker);
             this.extractEffects(graphics, deltaTracker);
@@ -236,6 +239,7 @@ public class Hud {
             this.extractChat(graphics, deltaTracker);
             this.extractTabList(graphics, deltaTracker);
             this.extractSubtitleOverlay(graphics, this.minecraft.gui.screen() == null || this.minecraft.gui.screen().isInGameUi());
+            CosmixFeatures.extractHud(graphics);
          } else if (this.minecraft.gui.screen() != null && this.minecraft.gui.screen().isInGameUi()) {
             this.extractSubtitleOverlay(graphics, true);
          }
